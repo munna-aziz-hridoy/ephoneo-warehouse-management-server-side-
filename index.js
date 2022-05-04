@@ -13,7 +13,7 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-client.connect(() => console.log("DB connected"));
+// client.connect(() => console.log("DB connected"));
 const itemsCollection = client.db("warehouse").collection("items");
 
 app.use(express.json());
@@ -24,6 +24,7 @@ app.get("/", (req, res) => {
 });
 
 const runGetProduct = async () => {
+  await client.connect();
   const cursor = itemsCollection.find({});
   const products = await cursor.toArray();
   return products;
