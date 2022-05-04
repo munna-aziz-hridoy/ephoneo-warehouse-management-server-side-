@@ -46,10 +46,21 @@ const runGetProduct = async (property) => {
   return products;
 };
 
+const runAddProduct = async (product) => {
+  const result = await itemsCollection.insertOne(product);
+  return result;
+};
+
 app.get("/products", async (req, res) => {
   const property = req.query;
   const products = await runGetProduct(property).catch();
   res.send(products);
+});
+
+app.post("/products", async (req, res) => {
+  const product = req.body;
+  const result = await runAddProduct(product);
+  res.send(result);
 });
 
 app.listen(port, () => {
