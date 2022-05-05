@@ -64,12 +64,12 @@ const runDeleteProduct = async (id) => {
 };
 
 const runUpdateProduct = async (id, product) => {
-  const { quantity } = product;
+  const { quantity, sold } = product;
   const filter = { _id: ObjectId(id) };
-  const updateDoc = { $set: { quantity: quantity } };
+  const updateDoc = { $set: { quantity: quantity, sold: sold } };
   const options = { upsert: true };
   const result = await itemsCollection.updateOne(filter, updateDoc, options);
-  console.log(result);
+  return result;
 };
 
 app.get("/products", async (req, res) => {
