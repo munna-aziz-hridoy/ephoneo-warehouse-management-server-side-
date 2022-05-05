@@ -63,6 +63,15 @@ const runDeleteProduct = async (id) => {
   return result;
 };
 
+const runUpdateProduct = async (id, product) => {
+  const { quantity } = product;
+  const filter = { _id: ObjectId(id) };
+  const updateDoc = { $set: { quantity: quantity } };
+  const options = { upsert: true };
+  const result = await itemsCollection.updateOne(filter, updateDoc, options);
+  console.log(result);
+};
+
 app.get("/products", async (req, res) => {
   const property = req.query;
   const products = await runGetProduct(property).catch();
@@ -85,6 +94,12 @@ app.delete("/delete/:id", async (req, res) => {
   const id = req.params.id;
   const result = await runDeleteProduct(id);
   res.send(result);
+});
+
+app.put("/update/:id", async (req, res) => {
+  const product = req.body;
+  const id = req.params.id;
+  runUpdateProduct(id, product).catch;
 });
 
 app.listen(port, () => {
