@@ -57,6 +57,12 @@ const runGetSingleProduct = async (id) => {
   return product;
 };
 
+const runDeleteProduct = async (id) => {
+  const filter = { _id: ObjectId(id) };
+  const result = await itemsCollection.deleteOne(filter);
+  return result;
+};
+
 app.get("/products", async (req, res) => {
   const property = req.query;
   const products = await runGetProduct(property).catch();
@@ -72,6 +78,12 @@ app.get("/singleProduct", async (req, res) => {
 app.post("/products", async (req, res) => {
   const product = req.body;
   const result = await runAddProduct(product);
+  res.send(result);
+});
+
+app.delete("/delete/:id", async (req, res) => {
+  const id = req.params.id;
+  const result = await runDeleteProduct(id);
   res.send(result);
 });
 
