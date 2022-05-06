@@ -24,15 +24,17 @@ app.get("/", (req, res) => {
   res.send({ message: "server connected" });
 });
 
-const varifyJWT = (req, res, next) => {
+const verifyJWT = (req, res, next) => {
   const accessToken = req.headers.authorization;
   if (!accessToken) {
-    return res.status(401).send({ message: "unauthorized access" });
+    res.status(401).send({ message: "Unauthorized Access" });
+    return;
   }
   const token = accessToken.split(" ")[1];
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(403).send({ message: "Forbidden access" });
+      res.status(403).send({ message: "Forbidden Access" });
+      return;
     }
     req.decoded = decoded;
     next();
@@ -114,7 +116,7 @@ app.get("/singleProduct", async (req, res) => {
   res.send(product);
 });
 
-app.get("/myitems", varifyJWT, async (req, res) => {
+app.get("/myitems", verifyJWT, async (req, res) => {
   const email = req.query.email;
   if (email === req.decoded?.email) {
     const products = await rungetUserProduct(email);
