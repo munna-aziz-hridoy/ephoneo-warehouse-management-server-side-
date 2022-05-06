@@ -20,7 +20,9 @@ const itemsCollection = client.db("warehouse").collection("items");
 app.use(express.json());
 app.use(cors());
 
-app.get("/", (req, res) => {});
+app.get("/", (req, res) => {
+  res.send({ message: "server connected" });
+});
 
 const varifyJWT = (req, res, next) => {
   const accessToken = req.headers.authorization;
