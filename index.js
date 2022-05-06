@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -19,62 +20,89 @@ const itemsCollection = client.db("warehouse").collection("items");
 app.use(express.json());
 app.use(cors());
 
-app.get("/", (req, res) => {
-  res.send("server is connected");
-});
+app.get("/", (req, res) => {});
 
-const runGetProduct = async (property) => {
-  const { limit, email } = property;
-
-  let cursor = itemsCollection.find({});
-  if (email !== "undefined") {
-    const query = { email };
-    cursor = itemsCollection.find(query);
-  } else {
-    cursor = itemsCollection.find({});
+const varifyJWT = (req, res, next) => {
+  const accessToken = req.headers.authorization;
+  if (!accessToken) {
+    return res.status(401).send({ message: "unauthorized access" });
   }
+  const token = accessToken.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
-  let products;
+const runGetProduct = async (limit) => {
+  try {
+    const cursor = itemsCollection.find({});
 
-  if (limit !== "undefined") {
-    const limitItem = parseInt(limit);
-    products = cursor.limit(limitItem).toArray();
-  } else {
-    products = cursor.toArray();
+    let products;
+    if (limit !== "undefined") {
+      const limitItem = parseInt(limit);
+      products = cursor.limit(limitItem).toArray();
+    } else {
+      products = cursor.toArray();
+    }
+    return products;
+  } finally {
   }
+};
 
-  return products;
+const rungetUserProduct = async (email) => {
+  try {
+    const cursor = itemsCollection.find({ email });
+    const product = await cursor.toArray();
+    return product;
+  } finally {
+  }
 };
 
 const runAddProduct = async (product) => {
-  const result = await itemsCollection.insertOne(product);
-  return result;
+  try {
+    const result = await itemsCollection.insertOne(product);
+    return result;
+  } finally {
+  }
 };
 
 const runGetSingleProduct = async (id) => {
-  const query = { _id: ObjectId(id) };
-  const product = await itemsCollection.findOne(query);
-  return product;
+  try {
+    const query = { _id: ObjectId(id) };
+    const product = await itemsCollection.findOne(query);
+    return product;
+  } finally {
+  }
 };
 
 const runDeleteProduct = async (id) => {
-  const filter = { _id: ObjectId(id) };
-  const result = await itemsCollection.deleteOne(filter);
-  return result;
+  try {
+    const filter = { _id: ObjectId(id) };
+    const result = await itemsCollection.deleteOne(filter);
+    return result;
+  } finally {
+  }
 };
 
 const runUpdateProduct = async (id, product) => {
-  const { quantity, sold } = product;
-  const filter = { _id: ObjectId(id) };
-  const updateDoc = { $set: { quantity: quantity, sold: sold } };
-  const options = { upsert: true };
-  const result = await itemsCollection.updateOne(filter, updateDoc, options);
-  return result;
+  try {
+    const { quantity, sold } = product;
+    const filter = { _id: ObjectId(id) };
+    const updateDoc = { $set: { quantity: quantity, sold: sold } };
+    const options = { upsert: true };
+    const result = await itemsCollection.updateOne(filter, updateDoc, options);
+    return result;
+  } finally {
+  }
 };
 
 app.get("/products", async (req, res) => {
-  const property = req.query;
-  const products = await runGetProduct(property).catch();
+  const limit = req.query.limit;
+  const products = await runGetProduct(limit).catch();
   res.send(products);
 });
 
@@ -82,6 +110,16 @@ app.get("/singleProduct", async (req, res) => {
   const id = req.query.id;
   const product = await runGetSingleProduct(id).catch();
   res.send(product);
+});
+
+app.get("/myitems", varifyJWT, async (req, res) => {
+  const email = req.query.email;
+  if (email === req.decoded?.email) {
+    const products = await rungetUserProduct(email);
+    res.send(products);
+  } else {
+    res.status(403).send({ message: "unauthorized access" });
+  }
 });
 
 app.post("/products", async (req, res) => {
@@ -100,6 +138,14 @@ app.put("/update/:id", async (req, res) => {
   const product = req.body;
   const id = req.params.id;
   runUpdateProduct(id, product).catch;
+});
+
+app.post("/getToken", async (req, res) => {
+  const user = req.body;
+  const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "3d",
+  });
+  res.send({ accessToken });
 });
 
 app.listen(port, () => {
