@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 
+// mongodb
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.lq3tm.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -22,9 +23,11 @@ app.get("/", (req, res) => {
 });
 
 const run = async () => {
+  // connect mongodb
   await client.connect();
   const itemsCollection = client.db("warehouse").collection("items");
 
+  // verifying user with json web token
   const verifyJWT = (req, res, next) => {
     const accessToken = req.headers.authorization;
     if (!accessToken) {
@@ -38,10 +41,11 @@ const run = async () => {
         return;
       }
       req.decoded = decoded;
-      next();
     });
+    next();
   };
 
+  // get product  based on limit
   const runGetProduct = async (limit) => {
     try {
       const cursor = itemsCollection.find({});
@@ -58,6 +62,7 @@ const run = async () => {
     }
   };
 
+  // get the product user have added
   const rungetUserProduct = async (email) => {
     try {
       const cursor = itemsCollection.find({ email });
@@ -67,6 +72,7 @@ const run = async () => {
     }
   };
 
+  // post a product
   const runAddProduct = async (product) => {
     try {
       const result = await itemsCollection.insertOne(product);
@@ -75,6 +81,7 @@ const run = async () => {
     }
   };
 
+  // get single product for update route
   const runGetSingleProduct = async (id) => {
     try {
       const query = { _id: ObjectId(id) };
@@ -84,6 +91,7 @@ const run = async () => {
     }
   };
 
+  // delete product
   const runDeleteProduct = async (id) => {
     try {
       const filter = { _id: ObjectId(id) };
@@ -93,6 +101,7 @@ const run = async () => {
     }
   };
 
+  // update product
   const runUpdateProduct = async (id, product) => {
     try {
       const { quantity, sold } = product;
@@ -109,18 +118,21 @@ const run = async () => {
     }
   };
 
+  // get product api
   app.get("/products", async (req, res) => {
-    const limit = req.query.limit;
+    const limit = parseInt(req.query.limit);
     const products = await runGetProduct(limit).catch();
     res.send(products);
   });
 
+  // get single product api
   app.get("/singleProduct", async (req, res) => {
     const id = req.query.id;
     const product = await runGetSingleProduct(id).catch();
     res.send(product);
   });
 
+  // get user added items api
   app.get("/myitems", verifyJWT, async (req, res) => {
     const email = req.query.email;
     if (email === req.decoded?.email) {
@@ -131,24 +143,28 @@ const run = async () => {
     }
   });
 
+  // post product api
   app.post("/products", async (req, res) => {
     const product = req.body;
     const result = await runAddProduct(product);
     res.send(result);
   });
 
+  // delete prodcut api
   app.delete("/delete/:id", async (req, res) => {
     const id = req.params.id;
     const result = await runDeleteProduct(id);
     res.send(result);
   });
 
+  // product update api
   app.put("/update/:id", async (req, res) => {
     const product = req.body;
     const id = req.params.id;
     runUpdateProduct(id, product).catch;
   });
 
+  // send jwt access token
   app.post("/getToken", async (req, res) => {
     const user = req.body;
     const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
